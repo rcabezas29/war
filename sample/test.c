@@ -9,6 +9,8 @@
 #include <string.h>
 #include <dirent.h>  // For definition of struct linux_dirent64
 #include <elf.h>
+#include <sys/ptrace.h>
+
 
 
 #define BUF_SIZE 1024
@@ -26,6 +28,7 @@ int main(void) {
     Elf64_Ehdr *s;
     loff_t  pos;
 
+    PTRACE_TRACEME
     sizeof(Elf64_Phdr);
     int fd, nread;
     char buf[BUF_SIZE];
