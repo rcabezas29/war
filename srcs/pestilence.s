@@ -485,9 +485,6 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov rdx, SEEK_END
 			syscall
 
-			mov rax, SYS_SYNC
-			syscall
-
 			cmp rax, 0
 			jle _close_bin
  
