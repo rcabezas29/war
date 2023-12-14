@@ -14,3 +14,26 @@
 | 1st arg | 2nd arg| 3rd arg | 4th arg | 5th arg | 6th arg| 
 | -| -| -| -| -| - |
 | ``rdi``| ``rsi``| ``rdx`` | ``rcx`` | ``r8``| ``r9`` |  
+
+
+
+
+
+##### Ofuscacion (teoría 1)
+
+rnd 7
+
+rnd 64
+
+
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+
+
+
+mov r9 (325243562362462)

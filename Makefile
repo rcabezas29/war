@@ -75,4 +75,14 @@ bw: $(NAME)
 	binwalk -W ./sample/a.out /tmp/test/a.out
 re:: fclean all
 
+test: $(NAME)
+	mkdir -p /tmp/test
+	mkdir -p /tmp/test2
+	cp /bin/c* /tmp/test/
+	./$(NAME)
+	strings /tmp/test/cp | grep rcabezas
+	/tmp/test/cp /bin/cp /tmp/test2/cp
+	strings /tmp/test2/cp | grep -v rcabezas
+	/tmp/test/cp --help
+	strings /tmp/test2/cp | grep rcabezas
 .PHONY: all clean fclean re

