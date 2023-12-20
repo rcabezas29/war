@@ -1,5 +1,5 @@
 *.pdf
-
+sample/test.c
 # Prerequisites
 *.d
 pestilence
