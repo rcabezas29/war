@@ -76,6 +76,6 @@ bw: $(NAME)
 re:: fclean all
 
 test: $(NAME)
-	@./test/test.sh
+	./test/test.sh
 	
 .PHONY: all clean fclean re test

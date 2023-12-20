@@ -28,10 +28,37 @@ function test_famine(){
     echo_green OK
 }
 
-function test_anti_debugging(){
-    if [ ! -f sample/test ]; then
-
+function test_process_name(){
+	echo_blue "Testing process detection "
+    if [ ! -f /bin/test ]; then
+		echo '#!/bin/sh' > /bin/test
+		echo sleep infinity >> /bin/test
+		chmod a+x /bin/test
     fi
+	/bin/test & 
+	PID=$(pgrep -f /bin/test)
+	cp -f /bin/cp /tmp/test/cp
+	strings /tmp/test/cp | grep -v $LOGIN >/dev/null || echo_red KO
+	./${NAME}
+	strings /tmp/test/cp | grep -v $LOGIN >/dev/null || echo_red KO
+	kill $PID
+	./${NAME}
+	strings /tmp/test/cp | grep $LOGIN >/dev/null || echo_red KO
+
+	rm -f /bin/test
+	echo_green OK
+}
+
+function test_antidebug(){
+	cd test
+	echo_blue Test anti debugging
+	cp -f /bin/cp /bin/chmod /tmp/test
+	cp -f /bin/ls /tmp/test2/ls
+	gdb ../$NAME &>/dev/null
+	strings /tmp/test2/ls | grep $LOGIN > /dev/null || (echo_green OK && return)
+	echo_red KO
 }
 
 test_famine
+test_process_name
+test_antidebug
