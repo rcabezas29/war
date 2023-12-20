@@ -9,6 +9,7 @@
 - https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
 - [PT_NOTE TO PT_LOAD](https://tmpout.sh/1/2.html)
 - https://medium.com/@tepes_alexandru/the-proc-directory-in-linux-63f278e962f1
+- https://defuse.ca/online-x86-assembler.htm#disassembly
 
 
 | 1st arg | 2nd arg| 3rd arg | 4th arg | 5th arg | 6th arg| 
