@@ -40,7 +40,7 @@ pestilence
 *.hex
 
 test
-
+!test/
 # Debug files
 *.dSYM/
 *.su

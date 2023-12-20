@@ -62,7 +62,7 @@ s: $(NAME)
 	strace ./build/pestilence
 
 g: $(NAME)
-	gdb ./build/pestilence
+	gdb --args build/pestilence -ex r
 
 run: $(NAME)
 	mkdir -p /tmp/test
@@ -76,13 +76,6 @@ bw: $(NAME)
 re:: fclean all
 
 test: $(NAME)
-	mkdir -p /tmp/test
-	mkdir -p /tmp/test2
-	cp /bin/c* /tmp/test/
-	./$(NAME)
-	strings /tmp/test/cp | grep rcabezas
-	/tmp/test/cp /bin/cp /tmp/test2/cp
-	strings /tmp/test2/cp | grep -v rcabezas
-	/tmp/test/cp --help
-	strings /tmp/test2/cp | grep rcabezas
-.PHONY: all clean fclean re
+	@./test/test.sh
+	
+.PHONY: all clean fclean re test
