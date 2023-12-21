@@ -37,7 +37,7 @@ function test_hello_world(){
 	gcc sample/sample.c -o /tmp/test2/hello_world
 
 	/tmp/test/hello_world | grep Hello >/dev/null || echo_red KO
-	strings /tmp/test/hello_world | grep $LOGIN && echo_green OK || echo_red KO
+	strings /tmp/test/hello_world | grep $LOGIN > /dev/null && echo_green OK || echo_red KO
 }
 
 function test_ls(){

