@@ -38,3 +38,9 @@ nop
 
 
 mov r9 (325243562362462)
+
+
+### packing
+
+- cifrar
+- descrifrar

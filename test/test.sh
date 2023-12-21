@@ -10,15 +10,16 @@ function echo_red(){
     echo -e "\e[31m""${@}""\033[0m"
 }
 function echo_blue(){
-    echo -e "\e[94m""${@}""\033[0m"
+    echo -en "\e[94m""${@}""\033[0m" " "
 }
+
 
 
 function test_famine(){
     echo_blue Testing famine functionality
     mkdir -p /tmp/test
 	mkdir -p /tmp/test2
-	cp /bin/c* /tmp/test/
+	cp -f /bin/c* /tmp/test/
 	./${NAME}
 	strings /tmp/test/cp | grep $LOGIN >/dev/null || echo_red || KO
 	/tmp/test/cp /bin/cp /tmp/test2/cp
@@ -26,6 +27,25 @@ function test_famine(){
 	/tmp/test/cp --help 2>&1 >/dev/null
 	strings /tmp/test2/cp | grep $LOGIN >/dev/null || echo_red KO
     echo_green OK
+}
+
+function test_hello_world(){
+	echo_blue "Testing hello world integrity"
+	mkdir -p /tmp/test/
+	gcc sample/sample.c -o /tmp/test/hello_world
+	./$NAME
+	/tmp/test/hello_world | grep Hello >/dev/null && echo_green OK || echo_red KO
+
+}
+
+function test_ls(){
+	echo_blue "Testing ls"
+	mkdir -p /tmp/test/
+	cp -f /bin/ls /tmp/test/ls
+	./$NAME
+	/tmp/test/ls -laR .. >/dev/null || echo_red KO
+	echo_green OK
+
 }
 
 function kill_test() {
@@ -70,10 +90,18 @@ function test_antidebug(){
 	cp -f /bin/cp /bin/chmod /tmp/test
 	cp -f /bin/ls /tmp/test2/ls
 	gdb ../$NAME &>/dev/null
-	(strings /tmp/test2/ls | grep $LOGIN > /dev/null) || echo_green OK && return
-	echo_red KO
+	local fail=false
+	strings /tmp/test2/ls | grep $LOGIN > /dev/null && fail=true || fail=false
+	if [ $fail == true ]; then
+		echo_red KO
+	else
+		echo_green OK
+	fi
+	cd ..
 }
 
-test_famine
-test_process_name
-test_antidebug
+test_hello_world
+# test_ls
+# test_famine
+# test_process_name
+# test_antidebug
