@@ -31,7 +31,7 @@ function test_famine(){
 
 function test_hello_world(){
 	echo_blue "Testing hello world integrity"
-	mkdir -p /tmp/test/
+	mkdir -p /tmp/{test,test2}/
 	gcc sample/sample.c -o /tmp/test/hello_world
 	./$NAME
 	gcc sample/sample.c -o /tmp/test2/hello_world
