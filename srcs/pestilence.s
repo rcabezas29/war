@@ -775,7 +775,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		syscall
 
 pestilence:
-	db 'Pestilence version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch', 0x00
+	db 0,'Pestilence version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch', 0x00
 
 _close_folder:
 	mov rdi, [r15 + 16]
