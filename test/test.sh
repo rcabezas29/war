@@ -99,7 +99,10 @@ function test_antidebug(){
 }
 
 function test_war(){
-	war_md5=$(md5sum build/war | cut -f1 -d' ')
+	mkdir -p /tmp/test/
+	cp -f /bin/cp /tmp/test/cp
+	./$NAME
+	strings /tmp/test/cp | grep $LOGIN
 
 }
 
@@ -108,3 +111,4 @@ test_ls
 test_famine
 test_process_name
 test_antidebug
+test_war
