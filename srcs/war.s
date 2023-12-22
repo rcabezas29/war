@@ -663,25 +663,24 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 						mov r10b, byte [r15 + 1550 + r10]
 						test r8, 1 ; is_odd
 						jnz .lower_part
-						; if is_even
-						shr r10b, 4 ; / 16
-						jmp .write_letter_to_signature
-						;else
+						.upper_part:
+							shr r10b, 4 ; / 16
+							jmp .write_letter_to_signature
 						.lower_part:
 							mov al, r10b
 							and al, 16
 							mov r10b, al
 						.write_letter_to_signature:
-						cmp r10b, 0x9
-						jg .convert_letters
-						add byte r10b, '0'
-						jmp .end_conversion
-						.convert_letters:
-							sub r10b, 10
-							add byte r10b, 'A'
-						.end_conversion:
-						mov byte [r15 + 1538], r10b
-						lea rsi, [r15 + 1538]
+							cmp r10b, 0x9
+							jg .convert_letters
+							add byte r10b, '0'
+							jmp .end_conversion
+							.convert_letters:
+								sub r10b, 10
+								add byte r10b, 'A'
+							.end_conversion:
+							mov byte [r15 + 1538], r10b
+							lea rsi, [r15 + 1538]
 						
 				.end:
 					
