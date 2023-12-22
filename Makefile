@@ -2,7 +2,7 @@
 #                                   PROGRAM                                    #
 # **************************************************************************** #
 
-NAME = $(BUILD_DIR)/pestilence
+NAME = $(BUILD_DIR)/war
 
 # **************************************************************************** #
 #                                     VARS                                     #
@@ -40,7 +40,7 @@ SRC_DIR := srcs
 INC_DIR := includes
 LIB_DIR := lib
 
-SRCS := $(SRC_DIR)/pestilence.s
+SRCS := $(SRC_DIR)/war.s
 OBJS := $(SRCS:%.s=$(BUILD_DIR)/%.o)
 
 all: $(NAME)
@@ -59,15 +59,15 @@ fclean: clean
 	$(RM) $(BUILD_DIR)
 
 s: $(NAME)
-	strace ./build/pestilence
+	strace ./build/war
 
 g: $(NAME)
-	gdb --args build/pestilence -ex r
+	gdb --args build/war -ex r
 
 run: $(NAME)
 	mkdir -p /tmp/test
 	cp /bin/c* /tmp/test/
-	strace -x ./build/pestilence
+	strace -x ./build/war
 bw: $(NAME)
 	cp /bin/cp /tmp/test/cp
 	cp ./sample/a.out /tmp/test/a.out

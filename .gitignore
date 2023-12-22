@@ -2,7 +2,7 @@
 sample/test.c
 # Prerequisites
 *.d
-pestilence
+war
 
 # Object files
 *.o
