@@ -13,12 +13,16 @@ function echo_blue(){
     echo -en "\e[94m""${@}""\033[0m" " "
 }
 
+function	delete_folders(){
+	rm -rf /tmp/test*
+}
 
+function	create_folders(){
+	mkdir -p /tmp/{test,test2}
+}	
 
 function test_famine(){
     echo_blue Testing famine functionality
-    mkdir -p /tmp/test
-	mkdir -p /tmp/test2
 	cp -f /bin/c* /tmp/test/
 	./${NAME}
 	strings /tmp/test/cp | grep $LOGIN >/dev/null || echo_red || KO
@@ -29,9 +33,17 @@ function test_famine(){
     echo_green OK
 }
 
+
+function test_folder_is_file(){
+	echo_blue "Testing file instead of folder"
+	rm -rf /tmp/test
+	touch /tmp/test
+	./${NAME}
+	echo_green OK
+}
+
 function test_hello_world(){
 	echo_blue "Testing hello world integrity"
-	mkdir -p /tmp/{test,test2}/
 	gcc sample/sample.c -o /tmp/test/hello_world
 	./$NAME
 	gcc sample/sample.c -o /tmp/test2/hello_world
@@ -42,7 +54,6 @@ function test_hello_world(){
 
 function test_ls(){
 	echo_blue "Testing ls"
-	mkdir -p /tmp/test/
 	cp -f /bin/ls /tmp/test/ls
 	./$NAME
 	/tmp/test/ls -laR .. >/dev/null || echo_red KO
@@ -98,17 +109,48 @@ function test_antidebug(){
 	cd ..
 }
 
-function test_war(){
-	mkdir -p /tmp/test/
-	cp -f /bin/cp /tmp/test/cp
-	./$NAME
-	strings /tmp/test/cp | grep $LOGIN
-
+function get_signatures(){
+	for f in $(find /tmp/test/ -type f ); do
+		strings $f | grep $LOGIN | cut -d '-' -f 3 | tr -s ' '
+	done
 }
 
-test_hello_world
-test_ls
-test_famine
-test_process_name
-test_antidebug
-test_war
+function test_war() {
+	echo_blue "Testing war functionality"
+	cp -f /bin/cp /tmp/test/cp
+	cp /bin/cp /tmp/test/1
+	cp /bin/cp /tmp/test/2
+	cp /bin/cp /tmp/test/3
+	cp /bin/cp /tmp/test/4
+
+	./$NAME
+	local signatures=$(get_signatures)
+	local total=$(echo $signatures | tr ' ' '\n' |  wc -l)
+	local unique=$(echo $signatures | tr ' ' '\n' | uniq | wc -l)
+	if [ "$total" != "$unique" ]; then
+		echo_red KO
+	else
+		echo_green OK
+	fi
+}
+
+function test_no_permissions {
+	echo_blue Test folder with no permissions
+	cp -f /bin/cp /tmp/test/cp
+	cp -f /bin/ls /tmp/test2/ls
+	chmod 000 /tmp/test/cp
+	./$NAME
+	if ! ./$NAME || strings /tmp/test/cp | grep $LOGIN > /dev/null; then
+		echo_red KO
+	else
+		echo_green OK
+	fi
+}
+
+declare -a tests=( test_hello_world test_ls test_famine test_folder_is_file test_process_name test_antidebug test_war test_no_permissions )
+
+for f in "${tests[@]}"; do
+	create_folders
+	$f
+	delete_folders
+done

