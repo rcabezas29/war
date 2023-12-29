@@ -39,7 +39,6 @@ war
 *.x86_64
 *.hex
 
-test
 !test/
 # Debug files
 *.dSYM/

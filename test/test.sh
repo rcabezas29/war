@@ -40,6 +40,7 @@ function test_folder_is_file(){
 	touch /tmp/test
 	./${NAME}
 	echo_green OK
+	rm -rf /tmp/test
 }
 
 function test_hello_world(){
@@ -110,7 +111,7 @@ function test_antidebug(){
 }
 
 function get_signatures(){
-	for f in $(find /tmp/test/ -type f ); do
+	for f in $(find /tmp/test* -type f ); do
 		strings $f | grep $LOGIN | cut -d '-' -f 3 | tr -s ' '
 	done
 }
@@ -123,6 +124,14 @@ function test_war() {
 	cp /bin/cp /tmp/test/3
 	cp /bin/cp /tmp/test/4
 
+	find /bin/ -type f -exec sh -c '
+    for file do
+        if file "$file" | grep -q "ELF 64-bit"; then
+            cp "$file" /tmp/test2/
+        fi
+    done
+' sh {} +
+
 	./$NAME
 	local signatures=$(get_signatures)
 	local total=$(echo $signatures | tr ' ' '\n' |  wc -l)
@@ -131,6 +140,7 @@ function test_war() {
 		echo_red KO
 	else
 		echo_green OK
+		echo $signatures | tr ' ' '\n' | uniq | wc -l
 	fi
 }
 
