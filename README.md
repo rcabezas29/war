@@ -1,46 +1,67 @@
 # war
 
-### Resources
+This project is the continuation of [pestilence](https://github.com/rcabezas29/pestilence). The purpose is to adding polymorphism to the virus.
 
-- https://linux-audit.com/elf-binaries-on-linux-understanding-and-analysis/
-- https://www.symbolcrash.com/2019/03/27/pt_note-to-pt_load-injection-in-elf/
-- https://samples.vx-underground.org/root/Papers/Linux/Infection/2021-01-18%20-%20ELF%20Infection%20in%20Assembly%20x64%20-%20Midrashim%20virus.pdf
-- https://man7.org/linux/man-pages/man5/elf.5.html
-- https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
-- [PT_NOTE TO PT_LOAD](https://tmpout.sh/1/2.html)
-- https://medium.com/@tepes_alexandru/the-proc-directory-in-linux-63f278e962f1
-- https://defuse.ca/online-x86-assembler.htm#disassembly
+## Polymorphism
 
+A *polymorphic computer virus* is a type of malware that possesses the capability to alter its code or appearance each time it infects a new system. This unique characteristic provides several advantages for the virus:
 
-| 1st arg | 2nd arg| 3rd arg | 4th arg | 5th arg | 6th arg| 
-| -| -| -| -| -| - |
-| ``rdi``| ``rsi``| ``rdx`` | ``rcx`` | ``r8``| ``r9`` |  
+### 1. Evasion of Antivirus Detection
 
+- Traditional antivirus software relies on signature-based detection, which involves identifying known patterns or signatures of viruses. Polymorphic viruses constantly change their code, making it difficult for antivirus programs to recognize and create accurate signatures for detection.
 
+### 2. Extended Lifespan
 
+- Polymorphic viruses have a longer lifespan compared to their non-polymorphic counterparts because they can evade detection for a more extended period. The constant mutation helps the virus stay ahead of signature-based security measures.
 
+### 3. Increased Payload Delivery
 
-##### Ofuscacion (teoría 1)
+- Polymorphic viruses can carry a variety of payloads or malicious functions. By changing their code regularly, they can adapt to different environments and deliver a wide range of payloads without being easily detected.
 
-rnd 7
+### 4. Dynamic Obfuscation
 
-rnd 64
+- Polymorphic viruses use dynamic obfuscation techniques to hide their true nature. By constantly changing their appearance, they can avoid static analysis methods that rely on the analysis of unchanging code patterns.
 
+For this project, the objetive was to include a hash after our signature. It was coded by taking the system clock time and passing it, in hexadecimal format, to ASCII readable characters.
 
-nop
-nop
-nop
-nop
-nop
-nop
-nop
+This simple action will make that some kinds of analysis will fail as the same infection over the same binary will get a different result and a hash over an infected binary will result on a different one every time.
 
+The result of `strings /tmp/test/infected_binary | grep War` would be something like this:
 
+`War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night's Watch - XXXXXXXXXXXXXXXX`
 
-mov r9 (325243562362462)
+## Usage
 
+As there is a `.devcontainer`, you can open the project with your VSCode with the appropiate extension and the Docker container will deploy automatically.
 
-### packing
+Alternatively, you can deploy it the hard mode:
 
-- cifrar
-- descrifrar
+```bash
+docker build -t war .
+docker run -v $(pwd):/root/war -it war
+```
+
+Inside the container:
+
+```bash
+make && ./build/war
+```
+
+If you want to see the syscalls and a simple test we have done:
+
+```bash
+make run
+```
+
+or to debug it:
+
+```bash
+make g
+```
+
+## Testing
+
+We have added some [testing](./test/test.sh). This can be executed with:
+```bash
+make test
+```
