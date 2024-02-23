@@ -2,7 +2,7 @@
 sample/test.c
 # Prerequisites
 *.d
-war
+death
 
 # Object files
 *.o

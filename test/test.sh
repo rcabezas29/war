@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-NAME=build/war
+NAME=build/death
 LOGIN=rcabezas
 function echo_green(){
     echo -e "\e[32m""${@}""\033[0m"
@@ -140,7 +140,6 @@ function test_war() {
 		echo_red KO
 	else
 		echo_green OK
-		echo $signatures | tr ' ' '\n' | uniq | wc -l
 	fi
 }
 

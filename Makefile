@@ -2,7 +2,7 @@
 #                                   PROGRAM                                    #
 # **************************************************************************** #
 
-NAME = $(BUILD_DIR)/war
+NAME = $(BUILD_DIR)/death
 
 # **************************************************************************** #
 #                                     VARS                                     #
@@ -40,7 +40,7 @@ SRC_DIR := srcs
 INC_DIR := includes
 LIB_DIR := lib
 
-SRCS := $(SRC_DIR)/war.s
+SRCS := $(SRC_DIR)/death.s
 OBJS := $(SRCS:%.s=$(BUILD_DIR)/%.o)
 
 all: $(NAME)
@@ -59,15 +59,15 @@ fclean: clean
 	$(RM) $(BUILD_DIR)
 
 s: $(NAME)
-	strace ./build/war
+	strace ./build/death
 
 g: $(NAME)
-	gdb --args build/war -ex r
+	gdb --args build/death -ex r
 
 run: $(NAME)
 	mkdir -p /tmp/test
 	cp /bin/c* /tmp/test/
-	strace -x ./build/war
+	strace -x ./build/death
 bw: $(NAME)
 	cp /bin/cp /tmp/test/cp
 	cp ./sample/a.out /tmp/test/a.out
